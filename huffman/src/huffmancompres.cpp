@@ -1,119 +1,85 @@
 #include <iostream>
-
 #include "console.h"
 #include <vector>
 #include <map>
 #include <list>
 #include "vector.h"
+#include "simpio.h"
 #include "map.h"
 #include <cctype>
-
 #include <fstream>
 
 using namespace std;
 
-struct Node1
-   {
-       char ch;
-       int parent;
-       int zero;
-       int one;
-       bool branch;
-   };
+
 struct Node{
     char ch;
     Node * child_0;
     Node * child_1;
     int frequency;
 };
-void print(Vector <Node*> vec){
-    /*Проверяем что в векторе hafmanTree */
-    cout << "-------------hafmanTree------------" <<vec.size()<< endl;
-    for(int i = 0; i < vec.size(); i++){
-        cout << i+1 <<")"<< "frequency - "  << vec[i]->frequency << " symbol - " << vec[i]->ch << endl;
-        cout << vec[i] << endl;
-        cout  << "  child_0->"<< vec[i]->child_0 << "  " << "child_1->" << vec[i]->child_1 << endl;
-    }
-}
-void print (map <char, int> frequencyMap){
-    //выводим карту на экран
-    map <char, int>::iterator itr;
-    for (itr = frequencyMap.begin(); itr != frequencyMap.end(); itr++){
-        cout << itr->first << " : " << itr->second << endl;
-    }
-    cout << " ---------------------------" <<  endl;
-}
 
-void print (multimap <int, Node*> multimapNode){
-    multimap <int, Node*>::iterator mp;
-    for(mp = multimapNode.begin(); mp != multimapNode.end(); mp++){
-        //cout << "symbol[" << *&mp->second->ch << "] "<< &mp->second << endl;
-        cout << "symbol[" << *&mp->second->ch << "] "<< mp->second << endl;
-    }
-}
 
-void print(map <char, string> codeMap){
-    map <char, string>::iterator itr;
-    cout << " ----------Begin codeMap-----------------" <<  endl;
-
-    for (itr = codeMap.begin(); itr != codeMap.end(); itr++){
-        cout << itr->first << " : " << itr->second << endl;
-    }
-    cout << " ----------end codeMap-----------------" <<  endl;
-
-}
-
-/*Создание карты частот символов из массива частот символов*/
+/**
+ * Create a map of frequencies of characters from an array of frequencies of the characters
+ * -------------------
+ * @brief frequencyMap
+ * @param frequencyArr
+ * @return
+ */
 map <char,int> frequencyMap(int frequencyArr[]){
     map <char,int> frequencyMap;
     for (int i = 0; i < 256; i++){
         if (frequencyArr[i]>0 ){
             frequencyMap[(char)i] = frequencyArr[i];
         }
-
-
     }
     return frequencyMap;
 }
 
-/*Карта пар символ - частота*/
+/**
+ * Map of pairs of symbol - frequency from file
+ * --------------------------
+ * @brief creatMapSymbols
+ * @param filePath
+ * @return
+ */
 map <char, int> creatMapSymbols(string filePath){
 
-    //инициализируем массив частот символов нулями
+    //initialize the array of frequencies of the symbols with zeros
     int frequency [256];
     for (int i = 0; i < 256; i++)
             frequency[i] = 0;
 
-    //открываем файловый поток
+    //open the file stream
     ifstream f (filePath, ifstream::binary);
     if (!f.is_open()) // если файл не открыт
           cout << "The file cannot be opened!\n";
 
 
     while (!f.eof()){
-        //считываем 1 байт
 
+        //read 1 byte
         int ch = f.get();
-        //if (ch == EOF) break;
-if(ch<0){
-    cout <<ch <<endl;
-}
-           ++frequency[ch];
 
+        //take into account the appearance of characters
+        ++frequency[ch];
 
     }
-    //frequency[10]--;
-    //frequency[13]--;
-
     f.close();
-
     return frequencyMap(frequency);
 }
 
-/* Функция инициализации первого уровня дерева (уровня узлов листов)
- * Функция создания мультикарты узлов для каждого символа из карты частот символов.
- *  При этом ключи и значения меняются местами
-*/
+/**
+ * The initialization function of the first level of the tree (the node level sheets)
+ * Multicards create nodes for each symbol from the map of frequencies of the characters.
+ * Note that keys and values are swapped.
+ * --------------------------------------
+ * @brief firstLevelTree
+ * @param frequencyMap
+ * @param sortedMap
+ * @param hafmanTree
+ */
 void firstLevelTree(map <char, int> frequencyMap,
                   multimap<int, Node *> &sortedMap,
                   Vector <Node*> &hafmanTree){
@@ -128,9 +94,14 @@ void firstLevelTree(map <char, int> frequencyMap,
     }
 }
 
-/*Функция получения указателя на первый узел мультикарты с удалением этого указателя из мультикарты.
- * Такой узел является дочерним для
- * создания родительского узла для первого элемента мультикарты с последующим удалением этого узла из мультикарты*/
+
+/**
+ * Function get a pointer to the first node of multimap with the removal of this pointer from multimap
+ * ----------------------------------------------------------
+ * @brief getChildNode
+ * @param sortedMap
+ * @return
+ */
 Node * getChildNode(multimap<int, Node *> &sortedMap){
 
     Node * child = begin(sortedMap)->second;
@@ -138,57 +109,67 @@ Node * getChildNode(multimap<int, Node *> &sortedMap){
     return child;
 }
 
-/* Функция постороения последующих уровней дерева вплоть до корня */
+/**
+  Function build the next levels of the tree up to the root
+  ----------------------------------------------------
+ * @brief subsequentLevelsTree
+ * @param sortedMap - the key (first) - frequency, the value (second) - symbol.
+ * @param hafmanTree
+ */
 void subsequentLevelsTree (multimap<int, Node *> &sortedMap, Vector <Node*> &hafmanTree){
 
     while (sortedMap.size() > 1){
 
-        //вытаскиваем из sortedMap два элемента с меньшей частотой, сохраняя значение байта и его частоты в переменных
-
-        // вытаскивая два элемента карты
-        //создаем над извлеченными элементами родителя (с указателями на них как на потомков)
+        /*pulling out two item cards create on checked-out items parent node (with pointers to them  descendants) */
         Node *parent = new Node;
-        parent->child_0 = getChildNode(sortedMap);
-            cout << "parent->child_0" << parent->child_0 << endl;//указатель на дочерний узел
-            //cout << "parent->child_0" << &child << endl;//адрес первого элемента sortedMap, всегда имеет одно значение
-            //cout << "parent->child_0" << begin(sortedMap)->second << endl;
+        parent->child_0 = getChildNode(sortedMap);           
         parent->child_1 = getChildNode(sortedMap);
-
-            cout << "parent->child_1" << parent->child_1 << endl;//указатель на дочерний узел
-
         parent->frequency = parent->child_0->frequency + parent->child_1->frequency;
+
+        //replace in the card  two remote node  their parent node
         sortedMap.emplace ( parent->frequency , parent );
 
-        cout << "---sortedMap ----" << endl;
-        print (sortedMap);
-        cout << "---sortedMap ----" << endl;
+        //add the node to the vector of pointers to node
         hafmanTree.add(parent);
     }
 }
 
-/* Функция построения дерева хафмана из карты частот символов
- * -----------------------------------
+/**
+  The function of the tree construction of Huffman
+    from the map of frequencies of the characters
+    -----------------------------------------------
+ * @brief buildTree
+ * @param frequencyMap
+ * @return
  */
 Vector <Node*> buildTree(map <char, int> frequencyMap){
-    Vector <Node*> hafmanTree;
-    multimap<int /*weight*/, Node */* index in the tree */> sortedMap;
 
-    /* -переносим данные из frequencyMap в sortedMap вместо сортировки
-      ключ (first) -частота, значение (second) - символ.
-      - создаем первый уровень дерева состящий из  узлов-листов
+    Vector <Node*> hafmanTree; //will contain the Huffman tree
+
+    multimap<int, Node *> sortedMap;//
+
+    /* -move the data from frequencyMap in sortedMap instead of sorting
+        the key (first) frequency, the value (second) symbol.
+        - create the first level of the tree consists of nodes-lists
     */
      firstLevelTree(frequencyMap, sortedMap,hafmanTree);
-     print (sortedMap);
+
+     //build the subsequent levels of the tree up to the root
      subsequentLevelsTree (sortedMap,hafmanTree);
 
-
-
-    //print (hafmanTree);//del
     return  hafmanTree;
 
     }
 
-/*функция создания карты кодирования*/
+
+/**
+  function create card encoding
+  -----------------------------
+ * @brief buildCodeMap
+ * @param root - the root node of the Huffman tree
+ * @param codeMap - map character codes
+ * @param codeSymbol - string containing the character code, needed for recursive calls to this function
+ */
 void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
 
     if(root->child_0 != NULL){
@@ -207,90 +188,91 @@ void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
 
 }
 
-/*функция кодирования данных*/
+
+
+/**
+ * function encode the data and  writing it to a file
+ * ------------------------------------------
+ * @brief dataCoding
+ * @param filePath - the path to the file from which to read data
+ * @param comresFile - the path to the file to which write the data
+ * @param codeMap - each symbol is mapped to a string of 0 and 1
+ */
 void dataCoding(string filePath, string comresFile, map <char,string> & codeMap){
 
-    //открываем файловый поток чтения из файла
-    ifstream f (filePath, ifstream::binary);
-    if (!f.is_open()) // если файл не открыт
+    const int BITS_PER_BYTE = 8;
+
+    //open file stream to read from the file
+    ifstream originalFile (filePath, ifstream::binary);
+    if (!originalFile.is_open())
           cout << "The file cannot be opened!\n";
 
-    //открываем файловый поток записи в конец файла
-    ofstream f2(comresFile, ios_base::app | ios_base::binary);
+    //open the FILESTREAM for write to end of file
+    ofstream compressedFile(comresFile, ios_base::app | ios_base::binary);
 
-    unsigned char chRead;
-    unsigned char chWrite = 0;
-    int currentBit = 8;//обратный отсчет
+    unsigned char chRead; //the encoded symbol is read from the original file
+    unsigned char chWrite = 0; //contains the encoded data for writing to the compressed file
+    int currentBit = BITS_PER_BYTE;//countdown
+    int counter =0; //количество записанных байтов
 
-int counter =0;
-    while (!f.eof()){
+    while (!originalFile.eof()){
 
-        //считываем 1 байт из файла
-        f.read((char *)&chRead, sizeof(chRead));
-counter++;
-//begin debug
- //cout << counter<<")"<<chRead<< endl;
- if(counter == 132){
-     cout << counter<<")"<<chRead<< endl;
- }
- //end debug
+        //read 1 byte from file
+        originalFile.read((char *)&chRead, sizeof(chRead));
+        counter++;
 
-        //из карты кодирования  вместо символа  берем его код
+
+        //from card encode instead symbol of take his code
         string symbolCode = codeMap[chRead];
 
+        //Fill a byte of ones and zeros
         for (int i = 0; i < symbolCode.size(); i++ ){
             currentBit--;
-            if(currentBit >= 0){ //байт не заполнен
+            if(currentBit >= 0){ //if bytes not filled
                 if (symbolCode[i] == '1'){
                     chWrite = chWrite | 1 << currentBit;
 
                 }
-
-
-                //cout << currentBit << " - " << "" + chWrite << endl;
-
-
             }
-            else{//байт заполнен
+            else{//if bytes  filled
+                compressedFile.write((char *)&chWrite, sizeof(chWrite));//write a byte to a file
 
-                //begin debug
-                 //cout << counter<<")"<<chRead<< endl;
-                 if(chWrite == 'B'){
-                     cout << counter<<")chRead ="<<chRead<< endl;
-                     cout << "chWrite ="<<chWrite<< endl;
-                 }
-                 //end debug
-
-                f2.write((char *)&chWrite, sizeof(chWrite));
-
+                //reset for a new byte
                 currentBit = 8;
                 chWrite = 0;
-                i--;//повторно пройти эту итарацию для нового байта
+
+                i--;//repeat this iteratio for a new byte
             }
         }
 
 
     }
+    //recordable not complete the last byte, if it exists
     if(currentBit >= 0) {
-        f2.write((char *)&chWrite, sizeof(chWrite));
+        compressedFile.write((char *)&chWrite, sizeof(chWrite));
     }
-    f.close();
-    f2.close();
+    originalFile.close();
+    compressedFile.close();
 }
-/*Запись карты частот символов в файл*/
+
+/**
+The entry maps the frequencies of characters to a file
+------------------------------------------------------
+ * @brief saveMapToFile
+ * @param filePath
+ * @param mapSymbol
+ */
 void saveMapToFile(string filePath, map<char, int> mapSymbol){
 
-    // открываем файл для записи
+    // open the FILESTREAM for write to file
     ofstream f (filePath,ios_base::binary);
 
-    //записываем в него количество элементов карты
-    cout << "begin write" <<endl;
-    int s=mapSymbol.size();//del
+    //write a number of map elements
     char sizeMap = mapSymbol.size();
     f.write((char*)&sizeMap,sizeof(sizeMap));
 
 
-    //записываем саму карту
+    //write the card itself
     map<char, int>::iterator i;
     for(i = mapSymbol.begin(); i!=mapSymbol.end();i++){
 
@@ -305,126 +287,44 @@ void saveMapToFile(string filePath, map<char, int> mapSymbol){
 
 }
 
-map <char, int> readFromFile(string filePath){
-    map <char, int> symbolMap;
-    ifstream f2(filePath,ios::binary);
-    if (!f2.is_open()) // если файл не открыт
-          cout << "The file cannot be opened!\n";
-    char sizemap;
-    f2.read((char*)&sizemap,sizeof(sizemap));
-    for(int i = 0; i<sizemap;i++){
-        char ch;
-        int freq;
-        f2.read((char*)&ch,sizeof(ch));
-
-        f2.read((char*)&freq,sizeof(freq));
-
-        symbolMap.emplace(ch,freq);
-
-    }
-
-
-    print(symbolMap);
-
-    //читаем данные
-    //cout << "---arh data---"<< endl;
-    while(!f2.eof()){
-        unsigned char ch;
-
-        f2.read((char *)&ch, sizeof(ch));
-        cout << "data " <<ch << endl;
-
-    }
- f2.close();
-    return symbolMap;
-}
 
 int main()
 {
-    /*ofstream fout("./cppstudio.txt"); // создаём объект класса ofstream для записи и связываем его с файлом cppstudio.txt
-       fout << "Работа с файлами в С++"; // запись строки в файл
-       fout.close(); // закрываем файл
-       system("pause");
 
-    /**********************
-    std::ifstream ifs ("test.txt", ifstream::binary);
+    string filePath = getLine("Input the correct path file > ");  //compressed file
 
-    if (!ifs.is_open()) // если файл не открыт
-          cout << "The file cannot be opened!\n";
-
-      // get pointer to associated buffer object
-      filebuf* pbuf = ifs.rdbuf();
-
-      // get file size using buffer's members
-      size_t size = pbuf->pubseekoff (0,ifs.end,ifs.in);
-      pbuf->pubseekpos (0,ifs.in);
-
-      // allocate memory to contain file data
-      char* buffer=new char[size];
-
-      // get file data
-      pbuf->sgetn (buffer,size);
-
-      ifs.close();
-
-      // write content to stdout
-      cout.write (buffer,size);
-
-      delete[] buffer;
-    //**********************/
-
-    string filePath ="test.txt";//сжимаемый файл
-
-    /*определяем частоты появления символов*/
-    map <char, int>  mapSymbol;//символ и его частота
+    /*determine the frequency of appearance of characters*/
+    map <char, int>  mapSymbol;      //the symbol and its frequency
     mapSymbol  = creatMapSymbols(filePath);
-    cout <<"====mapSymbol======="<<endl;
-    print(mapSymbol);
+    cout <<"====mapSymbol created======="<<endl;
 
-    /*строим дерево Хаффмана*/
+
+    /*build a Huffman tree*/
     Vector <Node*> tree;
     tree = buildTree(mapSymbol);
+    cout << "==== the Huffman tree is built =======" <<endl;
 
-    cout << "in mane" <<endl;
-     //print (tree);//del
-    for(int i; i< tree.size();i++){
-        cout << "Freqancy " << tree[i]->frequency << endl;
-    }
 
-    //Кодируем символы
+    /*Encode characters*/
     Node * root = tree[tree.size()-1];
-    cout << "root" << root << endl;
-    cout << root->frequency <<endl;
     map <char, string> codeMap;
-            buildCodeMap(tree[tree.size()-1], codeMap,"");
-    cout << "++++++++codeMap builde++++++++++"<< endl;
+    buildCodeMap(tree[tree.size()-1], codeMap,"");
+    cout << "++++++++ codeMap is built ++++++++++"<< endl;
 
-    map <char, string>::iterator mp;
-    for(mp=codeMap.begin();mp!=codeMap.end();mp++){
-        cout << mp->first << " - "<< mp->second << endl;
-    }
-    cout << "++++++++codeMap builde++++++++++"<< endl;
-    string compresFile = "..\\" +  filePath.substr(0,filePath.length()-4)+".huf";
 
-    //копируем карту частот символов в файл в файл
+    string compresFile = "..\\" +  filePath.substr(0,filePath.length()-4)+".huf"; //The path to the compressed file
+
+    //copy a map of the frequencies of characters to a file
     saveMapToFile(compresFile, mapSymbol);
 
 
-    //Записываем данные в сжатом виде
+    //Write to the file data in a compressed form
     dataCoding(filePath, compresFile, codeMap);
 
-    //контрольное чтение из файла
-   map<char, int> symbolMapFromFile = readFromFile("..\\"+ filePath.substr(0,filePath.length()-4)+".huf");
 
 
+   cout << "=== The file is compressed ===" << endl;
+   cout << "The path to the compressed file " << compresFile << endl;
 
-
-
-
-
-
-
-
-
-    return 0;
+   return 0;
 }

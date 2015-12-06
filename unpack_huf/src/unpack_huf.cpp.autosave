@@ -205,15 +205,24 @@ Vector<bool> getDataBin(string pathFile){
     return data;
 
 }
-
+/**
+ * from the vector of bits obtained actual data using a Huffman tree
+ * -------------
+ * @brief getData
+ * @param data
+ * @param tree
+ * @param pathFile
+ * @param fileSize
+ */
 void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fileSize){
 
     string pathFileDecompres = pathFile.substr(0,pathFile.length()-4);
     ofstream fileDecompres(pathFileDecompres,ios::out);
 
 
-    //определяем номер корневого узла в векторе узлов дерева
+    //define the root of tree node in the vector of nodes
     Node *node = tree[tree.size() - 1];
+    
     for(int i = 0; i < data.size(); i++){
         if(data[i]){
             node = node->child_1;
@@ -240,6 +249,13 @@ void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fil
     fileDecompres.close();
 }
 
+/**
+ * determine the size of the original file using mapSymbol
+ * ---------------------
+ * @brief getSizeFile
+ * @param mapSymbol
+ * @return 
+ */
 int getSizeFile(map <char,int> mapSymbol){
     int res = 0;
     map <char,int>::iterator i;
@@ -254,29 +270,29 @@ int getSizeFile(map <char,int> mapSymbol){
 void unpack(string pathFile){
     Vector <bool> data;
 
-    //читаем карту частот
+    //read a map of the frequencies of the symbols
     map <char,int> mapSymbol = readMapSymbol(pathFile);
     print (mapSymbol);
 
-    //строим дерво
+    //build the tree
     Vector <Node*> tree;
     tree = buildTree(mapSymbol);
 
-    //считываем данные  в двоичном формате в вектор
+    //read data in binary format into the vector
     data = getDataBin(pathFile);
 
 
-    //определяем размер файла
+    //determine the size of the original file
     int fileSize = getSizeFile(mapSymbol);
 
-    //распаковываем данные из вектора data с помощью дерева Хафмана
+    //unpack data from the vector data using the Huffman tree
     getData(data, tree, pathFile, fileSize);
 
 
 }
 
 int main() {
-    //ввод имени сжатого файла
+    
     string pathFile = getLine("Input the correct path file > ");
     unpack(pathFile);
 
