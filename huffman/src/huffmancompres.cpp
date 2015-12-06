@@ -39,7 +39,7 @@ void print (map <char, int> frequencyMap){
     //выводим карту на экран
     map <char, int>::iterator itr;
     for (itr = frequencyMap.begin(); itr != frequencyMap.end(); itr++){
-        cout << itr->first+0 << " : " << itr->second << endl;
+        cout << itr->first << " : " << itr->second << endl;
     }
     cout << " ---------------------------" <<  endl;
 }
@@ -50,6 +50,17 @@ void print (multimap <int, Node*> multimapNode){
         //cout << "symbol[" << *&mp->second->ch << "] "<< &mp->second << endl;
         cout << "symbol[" << *&mp->second->ch << "] "<< mp->second << endl;
     }
+}
+
+void print(map <char, string> codeMap){
+    map <char, string>::iterator itr;
+    cout << " ----------Begin codeMap-----------------" <<  endl;
+
+    for (itr = codeMap.begin(); itr != codeMap.end(); itr++){
+        cout << itr->first << " : " << itr->second << endl;
+    }
+    cout << " ----------end codeMap-----------------" <<  endl;
+
 }
 
 /*Создание карты частот символов из массива частот символов*/
@@ -74,7 +85,7 @@ map <char, int> creatMapSymbols(string filePath){
             frequency[i] = 0;
 
     //открываем файловый поток
-    ifstream f (filePath, ifstream::in);
+    ifstream f (filePath, ifstream::binary);
     if (!f.is_open()) // если файл не открыт
           cout << "The file cannot be opened!\n";
 
@@ -84,13 +95,15 @@ map <char, int> creatMapSymbols(string filePath){
 
         int ch = f.get();
         //if (ch == EOF) break;
-
+if(ch<0){
+    cout <<ch <<endl;
+}
            ++frequency[ch];
 
 
     }
-    frequency[10]--;
-    frequency[13]--;
+    //frequency[10]--;
+    //frequency[13]--;
 
     f.close();
 
@@ -190,49 +203,67 @@ void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
     if(root->child_0 == NULL && root->child_1 == NULL){
         codeMap.emplace(root->ch,codeSymbol);
 
-
     }
-
-
 
 }
 
 /*функция кодирования данных*/
-void dataCoding(string filePath, map <char,string> & codeMap){
+void dataCoding(string filePath, string comresFile, map <char,string> & codeMap){
 
     //открываем файловый поток чтения из файла
-    ifstream f (filePath, ifstream::in);
+    ifstream f (filePath, ifstream::binary);
     if (!f.is_open()) // если файл не открыт
           cout << "The file cannot be opened!\n";
 
-    //открываем файловый поток записи в файл
-    ofstream f2("..\\" + filePath + ".huf", ios_base::app);
+    //открываем файловый поток записи в конец файла
+    ofstream f2(comresFile, ios_base::app | ios_base::binary);
 
     unsigned char chRead;
     unsigned char chWrite = 0;
-    int currentBit = 7;//обратный отсчет
+    int currentBit = 8;//обратный отсчет
 
-
+int counter =0;
     while (!f.eof()){
 
         //считываем 1 байт из файла
         f.read((char *)&chRead, sizeof(chRead));
+counter++;
+//begin debug
+ //cout << counter<<")"<<chRead<< endl;
+ if(counter == 132){
+     cout << counter<<")"<<chRead<< endl;
+ }
+ //end debug
 
         //из карты кодирования  вместо символа  берем его код
         string symbolCode = codeMap[chRead];
 
         for (int i = 0; i < symbolCode.size(); i++ ){
-            if(currentBit >= 0){//байт не заполнен
+            currentBit--;
+            if(currentBit >= 0){ //байт не заполнен
                 if (symbolCode[i] == '1'){
-                    chWrite = chWrite | 0 | 1 << currentBit;
-                }
-                cout << currentBit << " - " << ""+chWrite << endl;
+                    chWrite = chWrite | 1 << currentBit;
 
-                currentBit--;
+                }
+
+
+                //cout << currentBit << " - " << "" + chWrite << endl;
+
+
             }
             else{//байт заполнен
+
+                //begin debug
+                 //cout << counter<<")"<<chRead<< endl;
+                 if(chWrite == 'B'){
+                     cout << counter<<")chRead ="<<chRead<< endl;
+                     cout << "chWrite ="<<chWrite<< endl;
+                 }
+                 //end debug
+
                 f2.write((char *)&chWrite, sizeof(chWrite));
-                currentBit = 7;
+
+                currentBit = 8;
                 chWrite = 0;
                 i--;//повторно пройти эту итарацию для нового байта
             }
@@ -240,10 +271,11 @@ void dataCoding(string filePath, map <char,string> & codeMap){
 
 
     }
-    if (chWrite != 0) {
+    if(currentBit >= 0) {
         f2.write((char *)&chWrite, sizeof(chWrite));
     }
     f.close();
+    f2.close();
 }
 /*Запись карты частот символов в файл*/
 void saveMapToFile(string filePath, map<char, int> mapSymbol){
@@ -253,7 +285,8 @@ void saveMapToFile(string filePath, map<char, int> mapSymbol){
 
     //записываем в него количество элементов карты
     cout << "begin write" <<endl;
-    char sizeMap = sizeof(mapSymbol)/sizeof(int);
+    int s=mapSymbol.size();//del
+    char sizeMap = mapSymbol.size();
     f.write((char*)&sizeMap,sizeof(sizeMap));
 
 
@@ -269,11 +302,14 @@ void saveMapToFile(string filePath, map<char, int> mapSymbol){
     }
 
     f.close();
+
 }
 
 map <char, int> readFromFile(string filePath){
     map <char, int> symbolMap;
-    ifstream f2(filePath,ios::binary|ios::out);
+    ifstream f2(filePath,ios::binary);
+    if (!f2.is_open()) // если файл не открыт
+          cout << "The file cannot be opened!\n";
     char sizemap;
     f2.read((char*)&sizemap,sizeof(sizemap));
     for(int i = 0; i<sizemap;i++){
@@ -291,7 +327,7 @@ map <char, int> readFromFile(string filePath){
     print(symbolMap);
 
     //читаем данные
-    cout << "---arh data---"<< endl;
+    //cout << "---arh data---"<< endl;
     while(!f2.eof()){
         unsigned char ch;
 
@@ -337,7 +373,7 @@ int main()
       delete[] buffer;
     //**********************/
 
-    string filePath ="test1.txt";//сжимаемый файл
+    string filePath ="test.txt";//сжимаемый файл
 
     /*определяем частоты появления символов*/
     map <char, int>  mapSymbol;//символ и его частота
@@ -350,11 +386,12 @@ int main()
     tree = buildTree(mapSymbol);
 
     cout << "in mane" <<endl;
-     print (tree);//del
+     //print (tree);//del
     for(int i; i< tree.size();i++){
         cout << "Freqancy " << tree[i]->frequency << endl;
     }
 
+    //Кодируем символы
     Node * root = tree[tree.size()-1];
     cout << "root" << root << endl;
     cout << root->frequency <<endl;
@@ -367,15 +404,17 @@ int main()
         cout << mp->first << " - "<< mp->second << endl;
     }
     cout << "++++++++codeMap builde++++++++++"<< endl;
+    string compresFile = "..\\" +  filePath.substr(0,filePath.length()-4)+".huf";
+
     //копируем карту частот символов в файл в файл
-    saveMapToFile("..\\" + filePath+".huf", mapSymbol);
+    saveMapToFile(compresFile, mapSymbol);
 
 
-
-    dataCoding("test1.txt", codeMap);
+    //Записываем данные в сжатом виде
+    dataCoding(filePath, compresFile, codeMap);
 
     //контрольное чтение из файла
-   map<char, int> symbolMapFromFile = readFromFile(filePath+".huf");
+   map<char, int> symbolMapFromFile = readFromFile("..\\"+ filePath.substr(0,filePath.length()-4)+".huf");
 
 
 
