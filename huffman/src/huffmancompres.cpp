@@ -19,6 +19,22 @@ struct Node{
     int frequency;
 };
 
+void print (map <char, int> frequencyMap){
+    //выводим карту на экран
+    map <char, int>::iterator itr;
+    for (itr = frequencyMap.begin(); itr != frequencyMap.end(); itr++){
+        cout << itr->first << " : " << itr->second << endl;
+    }
+    cout << " ---------------------------" <<  endl;
+}
+
+void print(map <char, string> codeMap){
+    map <char, string>::iterator i;
+    for(i = codeMap.begin();i != codeMap.end();i++){
+        cout<< i->first<<" - " << i->second << endl;
+    }
+}
+
 
 /**
  * Create a map of frequencies of characters from an array of frequencies of the characters
@@ -52,7 +68,7 @@ map <char, int> creatMapSymbols(string filePath){
             frequency[i] = 0;
 
     //open the file stream
-    ifstream f (filePath, ifstream::binary);
+    ifstream f (filePath, ios_base::binary | ios_base::in);
     if (!f.is_open()) // если файл не открыт
           cout << "The file cannot be opened!\n";
 
@@ -60,10 +76,11 @@ map <char, int> creatMapSymbols(string filePath){
     while (!f.eof()){
 
         //read 1 byte
-        int ch = f.get();
+        char ch;
+        f.read((char *)&ch, sizeof(ch));
 
         //take into account the appearance of characters
-        ++frequency[ch];
+        if(ch !='\0') ++frequency[ch];
 
     }
     f.close();
@@ -122,7 +139,7 @@ void subsequentLevelsTree (multimap<int, Node *> &sortedMap, Vector <Node*> &haf
 
         /*pulling out two item cards create on checked-out items parent node (with pointers to them  descendants) */
         Node *parent = new Node;
-        parent->child_0 = getChildNode(sortedMap);           
+        parent->child_0 = getChildNode(sortedMap);
         parent->child_1 = getChildNode(sortedMap);
         parent->frequency = parent->child_0->frequency + parent->child_1->frequency;
 
@@ -199,11 +216,11 @@ void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
  * @param codeMap - each symbol is mapped to a string of 0 and 1
  */
 void dataCoding(string filePath, string comresFile, map <char,string> & codeMap){
-
+    setLocale(LC_TYPE, "rus");
     const int BITS_PER_BYTE = 8;
 
     //open file stream to read from the file
-    ifstream originalFile (filePath, ifstream::binary);
+    ifstream originalFile (filePath, ios_base::binary | ios_base::in);
     if (!originalFile.is_open())
           cout << "The file cannot be opened!\n";
 
@@ -296,6 +313,7 @@ int main()
     /*determine the frequency of appearance of characters*/
     map <char, int>  mapSymbol;      //the symbol and its frequency
     mapSymbol  = creatMapSymbols(filePath);
+    print (mapSymbol);
     cout <<"====mapSymbol created======="<<endl;
 
 
@@ -309,6 +327,8 @@ int main()
     Node * root = tree[tree.size()-1];
     map <char, string> codeMap;
     buildCodeMap(tree[tree.size()-1], codeMap,"");
+    cout << "++++++++ codeMap  ++++++++++"<< endl;
+    print(codeMap);
     cout << "++++++++ codeMap is built ++++++++++"<< endl;
 
 
