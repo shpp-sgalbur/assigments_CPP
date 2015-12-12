@@ -14,6 +14,16 @@ struct Node{
     Node * child_1;
     int frequency;
 };
+void print(map <char, string> codeMap){
+    map <char, string>::iterator itr;
+    cout << " ----------Begin codeMap-----------------" <<  endl;
+
+    for (itr = codeMap.begin(); itr != codeMap.end(); itr++){
+        cout << itr->first << " : " << itr->second << endl;
+    }
+    cout << " ----------end codeMap-----------------" <<  endl;
+
+}
 
 void print (map <char, int> frequencyMap){
     //выводим карту на экран
@@ -180,6 +190,8 @@ Vector<bool> getDataBin(string pathFile){
     fileCompres.read((char*)&sizemap,sizeof(sizemap));
     int dataBegin = 1 + sizemap * (sizeof(int) + sizeof(char));
 
+    cout << "dataBegin = "<<dataBegin<< endl;
+
     //go to the start position of the data
     fileCompres.seekg ( dataBegin ,ios::beg );
 
@@ -211,9 +223,12 @@ void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fil
     string pathFileDecompres = pathFile.substr(0,pathFile.length()-4);
     ofstream fileDecompres(pathFileDecompres,ios::out);
 
+    cout << "data.size - " << data.size()<< endl;
 
-    //определяем номер корневого узла в векторе узлов дерева
+
+    //определяем  корневой узел в векторе узлов дерева    
     Node *node = tree[tree.size() - 1];
+    Node *root = node;
     for(int i = 0; i < data.size(); i++){
         if(data[i]){
             node = node->child_1;
@@ -228,7 +243,7 @@ void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fil
             fileDecompres.write((char *)&ch, sizeof(ch));
             fileSize--;
             if(fileSize>0){
-                node =  tree[tree.size() - 1];
+                node =  root;
             }
             else{
                 break;
@@ -246,6 +261,7 @@ int getSizeFile(map <char,int> mapSymbol){
     for(i = mapSymbol.begin(); i != mapSymbol.end(); i++){
         res += i->second;
     }
+
     return res;
 }
 
@@ -262,6 +278,11 @@ void unpack(string pathFile){
     Vector <Node*> tree;
     tree = buildTree(mapSymbol);
 
+    print (tree);
+    cout << "root " << endl;
+    cout  << "-----" <<endl;
+    cout <<tree[tree.size() - 1] << endl;
+
     //считываем данные  в двоичном формате в вектор
     data = getDataBin(pathFile);
 
@@ -276,6 +297,7 @@ void unpack(string pathFile){
 }
 
 int main() {
+    setLocale(LC_TYPE, "rus");
     //ввод имени сжатого файла
     string pathFile = getLine("Input the correct path file > ");
     unpack(pathFile);

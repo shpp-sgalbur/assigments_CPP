@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "gbufferedimage.h"
 #include <math.h>
-#include <complex>
+
 
 using namespace std;
 
@@ -27,8 +27,7 @@ public:
 
     /**the copy constructor
      */
-    Complex (const Complex &c)
-     {
+    Complex (const Complex &c){
        re = c.re;
        im = c.im;
      }
@@ -40,32 +39,26 @@ public:
 
     /**overloading operator +
      */
-    Complex operator+(const Complex &v)
-    {
+    Complex operator+(const Complex &v){
         return Complex(re + v.re, im + v.im);
     }
 
     /**squaring a complex number
      */
-    Complex complSqr(const Complex &v)
-    {
+    Complex complSqr(const Complex &v){
         return Complex(v.re * v.re - v.im * v.im, 2 * v.re * v.im);
     }
 
     /**The absolute value (or modulus or magnitude) of a complex number
      */
-    double complRadius(const Complex &v)
-    {
+    double complRadius(const Complex &v){
         return sqrt(v.re * v.re + v.im * v.im);
     }
 
 };
-/*-------- End complex class ----------------*/
+/*------------- End complex class -----------*/
 
-
-
-
-/* ---------- Declarations constants ---------------*/
+/* --------- Declarations constants ---------*/
 
 //the size of the graphics window (px)
 double const GW_WIDTH = 1000;
@@ -96,8 +89,7 @@ Complex  convertToComplex(double x, double y){
 bool isMandelbrot( Complex c){
     Complex zz = Complex(0,0);
     for(int i = 0;i < LIMIT_ITERATION; i++){
-        zz = zz + c;
-        zz = zz.complSqr(zz);
+        zz = zz.complSqr(zz + c);
         if (zz.complRadius(zz) > RADIUS) return false;
     }
     return true;

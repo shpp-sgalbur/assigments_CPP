@@ -216,7 +216,7 @@ void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
  * @param codeMap - each symbol is mapped to a string of 0 and 1
  */
 void dataCoding(string filePath, string comresFile, map <char,string> & codeMap){
-    setLocale(LC_TYPE, "rus");
+
     const int BITS_PER_BYTE = 8;
 
     //open file stream to read from the file
