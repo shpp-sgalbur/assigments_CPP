@@ -13,7 +13,7 @@ using namespace std;
 
 
 struct Node{
-    char ch;
+    unsigned char ch;
     Node * child_0;
     Node * child_1;
     int frequency;
@@ -68,7 +68,7 @@ map <char, int> creatMapSymbols(string filePath){
             frequency[i] = 0;
 
     //open the file stream
-    ifstream f (filePath, ios_base::binary | ios_base::in);
+    ifstream f (filePath, ios::binary );
     if (!f.is_open()) // если файл не открыт
           cout << "The file cannot be opened!\n";
 
@@ -76,11 +76,13 @@ map <char, int> creatMapSymbols(string filePath){
     while (!f.eof()){
 
         //read 1 byte
-        char ch;
+        unsigned char ch;
         f.read((char *)&ch, sizeof(ch));
+        if(f.eof()) break;
 
         //take into account the appearance of characters
-        if(ch !='\0') ++frequency[ch];
+        //if(ch !='\0')
+            frequency[ch]++;
 
     }
     f.close();
@@ -108,6 +110,9 @@ void firstLevelTree(map <char, int> frequencyMap,
         node->child_0 = node->child_1 = NULL;
         sortedMap.emplace ( node->frequency , node );
         hafmanTree.add(node);
+        if (node->ch == '\0'){
+            cout <<"node->ch == 0********************************";
+        }
     }
 }
 
@@ -142,6 +147,7 @@ void subsequentLevelsTree (multimap<int, Node *> &sortedMap, Vector <Node*> &haf
         parent->child_0 = getChildNode(sortedMap);
         parent->child_1 = getChildNode(sortedMap);
         parent->frequency = parent->child_0->frequency + parent->child_1->frequency;
+        parent->ch =NULL;
 
         //replace in the card  two remote node  their parent node
         sortedMap.emplace ( parent->frequency , parent );
@@ -220,7 +226,7 @@ void dataCoding(string filePath, string comresFile, map <char,string> & codeMap)
     const int BITS_PER_BYTE = 8;
 
     //open file stream to read from the file
-    ifstream originalFile (filePath, ios_base::binary | ios_base::in);
+    ifstream originalFile (filePath, ios_base::binary);
     if (!originalFile.is_open())
           cout << "The file cannot be opened!\n";
 
@@ -255,7 +261,7 @@ void dataCoding(string filePath, string comresFile, map <char,string> & codeMap)
                 compressedFile.write((char *)&chWrite, sizeof(chWrite));//write a byte to a file
 
                 //reset for a new byte
-                currentBit = 8;
+                currentBit = BITS_PER_BYTE;
                 chWrite = 0;
 
                 i--;//repeat this iteratio for a new byte
@@ -285,7 +291,7 @@ void saveMapToFile(string filePath, map<char, int> mapSymbol){
     ofstream f (filePath,ios_base::binary);
 
     //write a number of map elements
-    char sizeMap = mapSymbol.size();
+    int sizeMap = mapSymbol.size();
     f.write((char*)&sizeMap,sizeof(sizeMap));
 
 
@@ -293,7 +299,7 @@ void saveMapToFile(string filePath, map<char, int> mapSymbol){
     map<char, int>::iterator i;
     for(i = mapSymbol.begin(); i!=mapSymbol.end();i++){
 
-         char ch = i->first;
+         unsigned char ch = i->first;
          int freq = i->second;
          f.write((char*)&ch, sizeof(ch));
 
@@ -313,6 +319,7 @@ int main()
     /*determine the frequency of appearance of characters*/
     map <char, int>  mapSymbol;      //the symbol and its frequency
     mapSymbol  = creatMapSymbols(filePath);
+    int c = mapSymbol.size();
     print (mapSymbol);
     cout <<"====mapSymbol created======="<<endl;
 

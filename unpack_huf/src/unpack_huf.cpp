@@ -9,7 +9,7 @@
 using namespace std;
 
 struct Node{
-    char ch;
+    unsigned char ch;
     Node * child_0;
     Node * child_1;
     int frequency;
@@ -44,6 +44,13 @@ void print(Vector <Node*> vec){
     }
 }
 
+void print (Vector <bool> vec){
+    for(int i = 0; i < vec.size(); i++){
+        cout << vec[i];
+    }
+    cout <<endl;
+}
+
 /**
   The function reads a map of the frequencies of the symbols
   --------------------------------------
@@ -58,10 +65,10 @@ map <char,int> readMapSymbol (string pathFile){
           cout << "The file cannot be opened!\n";
           return symbolMap;
     }
-    char sizemap;
+    int sizemap;
     f.read((char*)&sizemap,sizeof(sizemap));
     for(int i = 0; i<sizemap;i++){
-        char ch;
+        unsigned char ch;
         int freq;
         f.read((char*)&ch,sizeof(ch));
 
@@ -129,6 +136,7 @@ void subsequentLevelsTree (multimap<int, Node *> &sortedMap, Vector <Node*> &haf
         parent->child_0 = getChildNode(sortedMap);
         parent->child_1 = getChildNode(sortedMap);
         parent->frequency = parent->child_0->frequency + parent->child_1->frequency;
+        parent->ch = NULL;
 
         //replace in the card  two remote node  their parent node
         sortedMap.emplace ( parent->frequency , parent );
@@ -180,15 +188,14 @@ Vector<bool> getDataBin(string pathFile){
     if (!fileCompres.is_open())
           cout << "The file cannot be opened!\n";
 
-    if (!fileCompres.is_open())
-          cout << "The file cannot be opened!\n";
+
 
     Vector<bool> data;//containing the value of all data bits
 
     //determine address of the initial byte of data
-    char sizemap;
+    int sizemap;
     fileCompres.read((char*)&sizemap,sizeof(sizemap));
-    int dataBegin = 1 + sizemap * (sizeof(int) + sizeof(char));
+    int dataBegin = sizeof(sizemap) + sizemap * (sizeof(int) + sizeof(char));
 
     cout << "dataBegin = "<<dataBegin<< endl;
 
@@ -221,7 +228,7 @@ Vector<bool> getDataBin(string pathFile){
 void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fileSize){
 
     string pathFileDecompres = pathFile.substr(0,pathFile.length()-4);
-    ofstream fileDecompres(pathFileDecompres,ios::out);
+    ofstream fileDecompres(pathFileDecompres,ios::binary);
 
     cout << "data.size - " << data.size()<< endl;
 
@@ -232,18 +239,22 @@ void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fil
     for(int i = 0; i < data.size(); i++){
         if(data[i]){
             node = node->child_1;
+            //cout << "1";//debug
         }
         else{
             node = node->child_0;
+            //cout <<"0";//debug
         }
+        if ((fileSize)%100 == 0) cout << fileSize << endl;//debug
 
-        if(node->ch!=NULL){
-            cout << node->ch <<" ";
-            char ch = node->ch ;
+        if(node->child_1==NULL || node->ch!='\0'){
+            //cout << node->ch <<" ";
+            unsigned char ch = node->ch ;
             fileDecompres.write((char *)&ch, sizeof(ch));
             fileSize--;
             if(fileSize>0){
                 node =  root;
+                //cout <<"";
             }
             else{
                 break;
@@ -265,6 +276,31 @@ int getSizeFile(map <char,int> mapSymbol){
     return res;
 }
 
+/**Удалить после отладки
+  function create card encoding
+  -----------------------------
+ * @brief buildCodeMap
+ * @param root - the root node of the Huffman tree
+ * @param codeMap - map character codes
+ * @param codeSymbol - string containing the character code, needed for recursive calls to this function
+ */
+void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
+
+    if(root->child_0 != NULL){
+        string codeSymbol_0 = codeSymbol + "0";
+
+        buildCodeMap(root->child_0, codeMap, codeSymbol_0);
+    }
+    if(root->child_1 != NULL){
+        string codeSymbol_1 = codeSymbol + "1";
+        buildCodeMap(root->child_1, codeMap, codeSymbol_1);
+    }
+    if(root->child_0 == NULL && root->child_1 == NULL){
+        codeMap.emplace(root->ch,codeSymbol);
+
+    }
+
+}
 
 
 void unpack(string pathFile){
@@ -278,17 +314,32 @@ void unpack(string pathFile){
     Vector <Node*> tree;
     tree = buildTree(mapSymbol);
 
-    print (tree);
+    /*Удалить после отладки
+     * Encode characters**/
+    Node * root = tree[tree.size()-1];
+    map <char, string> codeMap;
+    buildCodeMap(tree[tree.size()-1], codeMap,"");
+    cout << "++++++++ codeMap  ++++++++++"<< endl;
+    print(codeMap);
+    cout << "++++++++ codeMap is built ++++++++++"<< endl;
+
+    /*print (tree);
     cout << "root " << endl;
     cout  << "-----" <<endl;
-    cout <<tree[tree.size() - 1] << endl;
+    cout <<tree[tree.size() - 1] << endl;*/
 
     //считываем данные  в двоичном формате в вектор
     data = getDataBin(pathFile);
 
+    /*удалить после отладки
+    print(data);*/
+    cout << "data succesful"<< endl;
 
     //определяем размер файла
     int fileSize = getSizeFile(mapSymbol);
+
+    /*удалить после отладки*/
+    cout << "fileSize = " << fileSize << endl;
 
     //распаковываем данные из вектора data с помощью дерева Хафмана
     getData(data, tree, pathFile, fileSize);
@@ -297,7 +348,7 @@ void unpack(string pathFile){
 }
 
 int main() {
-    setLocale(LC_TYPE, "rus");
+
     //ввод имени сжатого файла
     string pathFile = getLine("Input the correct path file > ");
     unpack(pathFile);
