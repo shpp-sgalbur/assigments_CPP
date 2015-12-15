@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include "huf.h"
 #include "console.h"
@@ -14,6 +15,10 @@ struct Node{
     Node * child_1;
     int frequency;
 };
+
+/*************************************************************/
+/*----- auxiliary procedures for debugging - begin ----------*/
+
 void print(map <char, string> codeMap){
     map <char, string>::iterator itr;
     cout << " ----------Begin codeMap-----------------" <<  endl;
@@ -50,9 +55,11 @@ void print (Vector <bool> vec){
     }
     cout <<endl;
 }
+/*----- auxiliary procedures for debugging - end ----------*/
+/*************************************************************/
 
 /**
-  The function reads a map of the frequencies of the symbols
+  The function reads a map of the frequencies of the symbols from file
   --------------------------------------
  * @brief readFrequencyMap
  * @param pathFile
@@ -131,14 +138,15 @@ void subsequentLevelsTree (multimap<int, Node *> &sortedMap, Vector <Node*> &haf
 
     while (sortedMap.size() > 1){
 
-        /*pulling out two item cards create on checked-out items parent node (with pointers to them  descendants) */
+        /*pulls out two first elements from the map of symbols and creates the parent
+         * node above checked-out elements   (with pointers to descendants)*/
         Node *parent = new Node;
         parent->child_0 = getChildNode(sortedMap);
         parent->child_1 = getChildNode(sortedMap);
         parent->frequency = parent->child_0->frequency + parent->child_1->frequency;
         parent->ch = NULL;
 
-        //replace in the card  two remote node  their parent node
+        //replace in the map  two remote node  their parent node
         sortedMap.emplace ( parent->frequency , parent );
 
         //add the node to the vector of pointers to node
@@ -163,8 +171,7 @@ Vector <Node*> buildTree(map <char, int> frequencyMap){
 
     /* -move the data from frequencyMap in sortedMap instead of sorting
         the key (first) frequency, the value (second) symbol.
-        - create the first level of the tree consists of nodes-lists
-    */
+        - create the first level of the tree consists of nodes-lists*/
      firstLevelTree(frequencyMap, sortedMap,hafmanTree);
 
      //build the subsequent levels of the tree up to the root
@@ -188,16 +195,12 @@ Vector<bool> getDataBin(string pathFile){
     if (!fileCompres.is_open())
           cout << "The file cannot be opened!\n";
 
-
-
     Vector<bool> data;//containing the value of all data bits
 
     //determine address of the initial byte of data
     int sizemap;
     fileCompres.read((char*)&sizemap,sizeof(sizemap));
     int dataBegin = sizeof(sizemap) + sizemap * (sizeof(int) + sizeof(char));
-
-    cout << "dataBegin = "<<dataBegin<< endl;
 
     //go to the start position of the data
     fileCompres.seekg ( dataBegin ,ios::beg );
@@ -224,48 +227,64 @@ Vector<bool> getDataBin(string pathFile){
     return data;
 
 }
-
-void getData(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fileSize){
+/** from binary code receives initial data and writes them to a file
+ * -----------------------------------------------------------------------
+ * @brief getDataAndWrite
+ * @param data
+ * @param tree
+ * @param pathFile
+ * @param fileSize
+ */
+void getDataAndWrite(Vector <bool>& data, Vector <Node*> &tree, string pathFile, int fileSize){
 
     string pathFileDecompres = pathFile.substr(0,pathFile.length()-4);
     ofstream fileDecompres(pathFileDecompres,ios::binary);
 
-    cout << "data.size - " << data.size()<< endl;
+    // allocate memory for file content
+      char* buffer = new char[fileSize-1];
+      int indChar = 0;
 
-
-    //определяем  корневой узел в векторе узлов дерева    
+    //define the root node in the vector of nodes of the tree
     Node *node = tree[tree.size() - 1];
     Node *root = node;
+
+    //move from the tree root to the leaf using the binary code
     for(int i = 0; i < data.size(); i++){
         if(data[i]){
-            node = node->child_1;
-            //cout << "1";//debug
+            node = node->child_1;            
         }
         else{
-            node = node->child_0;
-            //cout <<"0";//debug
+            node = node->child_0;           
         }
-        if ((fileSize)%100 == 0) cout << fileSize << endl;//debug
 
-        if(node->child_1==NULL || node->ch!='\0'){
-            //cout << node->ch <<" ";
+
+        if(node->child_1==NULL || node->ch!='\0'){//reached the leaf
+
+            //the recorded value of the sheet to the clipboard
             unsigned char ch = node->ch ;
-            fileDecompres.write((char *)&ch, sizeof(ch));
-            fileSize--;
-            if(fileSize>0){
+            buffer[indChar++] = ch;            
+
+
+            if(fileSize > indChar){//if  still have the binary code for decoding
                 node =  root;
-                //cout <<"";
             }
             else{
-                break;
+                break;//if there is spurious code
             }
-
-
         }
     }
-    fileDecompres.close();
-}
 
+    fileDecompres.write(buffer, fileSize);
+    fileDecompres.close();
+    cout << "The file has been successfully decoded." << endl;
+    cout << "The location of the file " << pathFileDecompres << endl;
+}
+/** the calculation function of the initial size of the compressed file
+ * -------------------------
+ * @brief getSizeFile
+ * @param mapSymbol
+ * @return
+ */
 int getSizeFile(map <char,int> mapSymbol){
     int res = 0;
     map <char,int>::iterator i;
@@ -276,80 +295,34 @@ int getSizeFile(map <char,int> mapSymbol){
     return res;
 }
 
-/**Удалить после отладки
-  function create card encoding
-  -----------------------------
- * @brief buildCodeMap
- * @param root - the root node of the Huffman tree
- * @param codeMap - map character codes
- * @param codeSymbol - string containing the character code, needed for recursive calls to this function
- */
-void buildCodeMap(Node *root, map<char, string> &codeMap, string codeSymbol){
 
-    if(root->child_0 != NULL){
-        string codeSymbol_0 = codeSymbol + "0";
-
-        buildCodeMap(root->child_0, codeMap, codeSymbol_0);
-    }
-    if(root->child_1 != NULL){
-        string codeSymbol_1 = codeSymbol + "1";
-        buildCodeMap(root->child_1, codeMap, codeSymbol_1);
-    }
-    if(root->child_0 == NULL && root->child_1 == NULL){
-        codeMap.emplace(root->ch,codeSymbol);
-
-    }
-
-}
 
 
 void unpack(string pathFile){
     Vector <bool> data;
 
-    //читаем карту частот
-    map <char,int> mapSymbol = readMapSymbol(pathFile);
-    print (mapSymbol);
+    //read a map of the frequencies of the symbols from file
+    map <char,int> mapSymbol = readMapSymbol(pathFile);    
 
-    //строим дерво
+    //builds a tree
     Vector <Node*> tree;
     tree = buildTree(mapSymbol);
 
-    /*Удалить после отладки
-     * Encode characters**/
-    Node * root = tree[tree.size()-1];
-    map <char, string> codeMap;
-    buildCodeMap(tree[tree.size()-1], codeMap,"");
-    cout << "++++++++ codeMap  ++++++++++"<< endl;
-    print(codeMap);
-    cout << "++++++++ codeMap is built ++++++++++"<< endl;
-
-    /*print (tree);
-    cout << "root " << endl;
-    cout  << "-----" <<endl;
-    cout <<tree[tree.size() - 1] << endl;*/
-
-    //считываем данные  в двоичном формате в вектор
+    //read data in binary format into the vector
     data = getDataBin(pathFile);
 
-    /*удалить после отладки
-    print(data);*/
-    cout << "data succesful"<< endl;
+    //determine the size of the source file
+    int fileSize = getSizeFile(mapSymbol);    
 
-    //определяем размер файла
-    int fileSize = getSizeFile(mapSymbol);
-
-    /*удалить после отладки*/
-    cout << "fileSize = " << fileSize << endl;
-
-    //распаковываем данные из вектора data с помощью дерева Хафмана
-    getData(data, tree, pathFile, fileSize);
+    //unpack data from the vector data using the Huffman tree
+    getDataAndWrite(data, tree, pathFile, fileSize);
 
 
 }
 
 int main() {
 
-    //ввод имени сжатого файла
+
     string pathFile = getLine("Input the correct path file > ");
     unpack(pathFile);
 
